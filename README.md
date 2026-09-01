@@ -64,7 +64,8 @@ GET https://dummyjson.com/products/1
 
 ## 기술 요구사항
 
-- Swift
+- Xcode 26.5
+- Swift6
 - SwiftUI
 - 비동기 네트워크 처리
 - 적절한 상태 관리 구조 적용
