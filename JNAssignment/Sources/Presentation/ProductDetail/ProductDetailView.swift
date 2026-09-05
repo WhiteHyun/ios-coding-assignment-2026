@@ -21,38 +21,37 @@ struct ProductDetailView: View {
 
     case let .loaded(product):
       ScrollView {
-        VStack(alignment: .leading, spacing: 20) {
-          AsyncImage(url: product.thumbnail) { image in
-            image.resizable().scaledToFit()
-          } placeholder: {
-            Image(systemName: "photo")
-              .font(.largeTitle)
-              .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 24) {
+          ProductImageGallery(images: product.images)
+          productInformation(product)
+          if !product.description.isEmpty {
+            Divider()
+            VStack(alignment: .leading, spacing: 12) {
+              Text("상품 설명")
+                .font(.headline)
+              Text(product.description)
+                .font(.body)
+                .foregroundStyle(.secondary)
+            }
           }
-          .frame(maxWidth: .infinity)
-          .frame(height: 260)
-          .accessibilityHidden(true)
-
-          Text(product.title)
-            .font(.title2.bold())
-          Text(product.price, format: .number.precision(.fractionLength(2)))
-            .font(.title3)
-          if let description = product.description, !description.isEmpty {
-            Text(description)
-          }
-
-          Button {
-            Task { await interactor.send(.favoriteButtonTapped) }
-          } label: {
-            Label(product.isFavorite ? "찜 해제" : "찜하기", systemImage: product.isFavorite ? "heart.fill" : "heart")
-              .frame(maxWidth: .infinity, minHeight: 44)
-          }
-          .buttonStyle(.borderedProminent)
-          .tint(product.isFavorite ? .red : .accentColor)
-          .accessibilityValue(product.isFavorite ? "선택됨" : "선택 안 됨")
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
+      }
+      .safeAreaInset(edge: .bottom) {
+        Button {
+          Task { await interactor.send(.favoriteButtonTapped) }
+        } label: {
+          Label(product.isFavorite ? "찜 해제" : "찜하기", systemImage: product.isFavorite ? "heart.fill" : "heart")
+            .font(.headline)
+            .frame(maxWidth: .infinity, minHeight: 44)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(product.isFavorite ? .red : .accentColor)
+        .accessibilityValue(product.isFavorite ? "선택됨" : "선택 안 됨")
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(.bar)
       }
 
     case .failed:
@@ -67,5 +66,33 @@ struct ProductDetailView: View {
         .buttonStyle(.borderedProminent)
       }
     }
+  }
+
+  private func productInformation(_ product: ProductDetail) -> some View {
+    VStack(alignment: .leading, spacing: 12) {
+      Text([product.brand, product.category].compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " · "))
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
+      Text(product.title)
+        .font(.title2.bold())
+      Text(product.price, format: .number.precision(.fractionLength(2)))
+        .font(.title.bold())
+      ViewThatFits(in: .horizontal) {
+        HStack(spacing: 16) { productStatistics(product) }
+        VStack(alignment: .leading, spacing: 8) { productStatistics(product) }
+      }
+      .font(.subheadline)
+      .foregroundStyle(.secondary)
+    }
+  }
+
+  @ViewBuilder
+  private func productStatistics(_ product: ProductDetail) -> some View {
+    Label {
+      Text("평점 \(product.rating, format: .number.precision(.fractionLength(1))) / 5")
+    } icon: {
+      Image(systemName: "star.fill").foregroundStyle(.orange)
+    }
+    Label(product.stock > 0 ? "재고 \(product.stock)개" : "품절", systemImage: "shippingbox")
   }
 }

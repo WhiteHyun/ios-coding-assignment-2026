@@ -4,6 +4,7 @@ final class ProductURLProtocol: URLProtocol {
   enum Scenario: String {
     case products
     case productDetail = "product-detail"
+    case productDetailWithoutImages = "product-detail-without-images"
     case detailCancelled
     case detailNotFound
     case productsWithoutThumbnail = "products-without-thumbnail"
@@ -35,7 +36,7 @@ final class ProductURLProtocol: URLProtocol {
         throw URLError(.badURL)
       }
 
-      let isDetail = [.productDetail, .detailCancelled, .detailNotFound].contains(scenario)
+      let isDetail = [.productDetail, .productDetailWithoutImages, .detailCancelled, .detailNotFound].contains(scenario)
       let expectedURL = isDetail ? "https://dummyjson.com/products/42" : "https://dummyjson.com/products"
       guard url.absoluteString == expectedURL else { throw URLError(.badURL) }
 

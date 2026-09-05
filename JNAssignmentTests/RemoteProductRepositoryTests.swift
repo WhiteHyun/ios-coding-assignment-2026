@@ -6,7 +6,7 @@ import Testing
 @MainActor
 struct RemoteProductRepositoryTests {
   @Test
-  func `requests a specific product and decodes its description`() async throws {
+  func `requests a specific product and decodes detail images and information`() async throws {
     let session = makeSession(scenario: .productDetail)
     defer { session.invalidateAndCancel() }
     let repository = RemoteProductRepository(provider: APIProvider(session: session))
@@ -17,7 +17,25 @@ struct RemoteProductRepositoryTests {
     #expect(product.title == "Detail product")
     #expect(product.description == "Product description from the detail API.")
     #expect(product.price == 29.99)
-    #expect(product.thumbnail?.absoluteString == "https://example.com/detail.png")
+    #expect(product.images.map(\.absoluteString) == ["https://example.com/detail-1.png", "https://example.com/detail-2.png"])
+    #expect(product.brand == "Example")
+    #expect(product.category == "beauty")
+    #expect(product.rating == 4.25)
+    #expect(product.stock == 12)
+    #expect(!product.isFavorite)
+  }
+
+  @Test
+  func `invalid detail images fall back to the thumbnail and a missing brand is allowed`() async throws {
+    let session = makeSession(scenario: .productDetailWithoutImages)
+    defer { session.invalidateAndCancel() }
+    let repository = RemoteProductRepository(provider: APIProvider(session: session))
+
+    let product = try await repository.fetchProduct(id: 42)
+
+    #expect(product.images.map(\.absoluteString) == ["https://example.com/detail.png"])
+    #expect(product.brand == nil)
+    #expect(product.title == "Detail product")
   }
 
   @Test

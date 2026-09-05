@@ -6,6 +6,7 @@ import Foundation
 @MainActor
 final class StubProductRepository: ProductRepository {
   var result: Result<[Product], any Error>
+  var detailResult: Result<ProductDetail, any Error>?
   private(set) var requestCount = 0
   private(set) var detailRequestIDs: [Int] = []
 
@@ -13,12 +14,10 @@ final class StubProductRepository: ProductRepository {
     self.result = result
   }
 
-  func fetchProduct(id: Int) async throws -> Product {
+  func fetchProduct(id: Int) async throws -> ProductDetail {
     detailRequestIDs.append(id)
-    guard let product = try result.get().first(where: { $0.id == id }) else {
-      throw URLError(.resourceUnavailable)
-    }
-    return product
+    guard let detailResult else { throw URLError(.resourceUnavailable) }
+    return try detailResult.get()
   }
 
   func fetchProducts() async throws -> [Product] {
@@ -35,6 +34,7 @@ final class ControlledProductRepository: ProductRepository {
   private(set) var detailRequestIDs: [Int] = []
   private let requests: (stream: AsyncStream<Void>, continuation: AsyncStream<Void>.Continuation) = AsyncStream.makeStream()
   private var continuation: CheckedContinuation<[Product], any Error>?
+  private var detailContinuation: CheckedContinuation<ProductDetail, any Error>?
 
   func fetchProducts() async throws -> [Product] {
     requestCount += 1
@@ -44,17 +44,22 @@ final class ControlledProductRepository: ProductRepository {
     }
   }
 
-  func fetchProduct(id: Int) async throws -> Product {
+  func fetchProduct(id: Int) async throws -> ProductDetail {
     detailRequestIDs.append(id)
-    guard let product = try await fetchProducts().first(where: { $0.id == id }) else {
-      throw URLError(.resourceUnavailable)
+    return try await withCheckedThrowingContinuation { continuation in
+      detailContinuation = continuation
+      requests.continuation.yield(())
     }
-    return product
   }
 
   func waitForRequest() async {
     var iterator = requests.stream.makeAsyncIterator()
     await iterator.next()
+  }
+
+  func completeDetail(with result: Result<ProductDetail, any Error>) {
+    detailContinuation?.resume(with: result)
+    detailContinuation = nil
   }
 
   func complete(with result: Result<[Product], any Error>) {

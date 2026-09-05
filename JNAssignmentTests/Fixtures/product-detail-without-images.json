@@ -5,10 +5,8 @@
   "price": 29.99,
   "thumbnail": "https://example.com/detail.png",
   "images": [
-    "https://example.com/detail-1.png",
-    "https://example.com/detail-2.png"
+    "http://[invalid"
   ],
-  "brand": "Example",
   "category": "beauty",
   "rating": 4.25,
   "stock": 12

@@ -17,7 +17,7 @@ final class ProductDetailInteractor: Interactor {
   enum ProductDetailPhase: Equatable {
     case idle
     case loading
-    case loaded(Product)
+    case loaded(ProductDetail)
     case failed
   }
 
