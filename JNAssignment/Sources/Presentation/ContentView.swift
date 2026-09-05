@@ -5,17 +5,18 @@
 //  Created by whitehyun on 9/4/26.
 //
 
+import Architecture
 import SwiftUI
 
 struct ContentView: View {
-  @State var interactor: ProductListInteractor
-  let makeDetailInteractor: (Int) -> ProductDetailInteractor
+  @State var store: StoreOf<ProductListReducer>
+  let makeDetailStore: (Int) -> StoreOf<ProductDetailReducer>
 
   var body: some View {
     NavigationStack {
-      ProductListView(interactor: interactor)
+      ProductListView(store: store)
         .navigationDestination(for: Int.self) { productID in
-          ProductDetailView(interactor: makeDetailInteractor(productID))
+          ProductDetailView(store: makeDetailStore(productID))
         }
     }
   }

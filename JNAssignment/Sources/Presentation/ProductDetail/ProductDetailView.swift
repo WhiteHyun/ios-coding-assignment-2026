@@ -1,20 +1,20 @@
+import Architecture
 import SwiftUI
 
 struct ProductDetailView: View {
-  @State var interactor: ProductDetailInteractor
+  @State var store: StoreOf<ProductDetailReducer>
 
   var body: some View {
     content
       .navigationTitle("상품 상세")
       .navigationBarTitleDisplayMode(.inline)
-      .task(id: interactor.state.retryCount) {
-        await interactor.send(.task)
-      }
+      .onAppear { store.dispatch(.appeared) }
+      .onDisappear { store.dispatch(.disappeared) }
   }
 
   @ViewBuilder
   private var content: some View {
-    switch interactor.state.phase {
+    switch store.state.phase {
     case .idle, .loading:
       ProgressView("상품을 불러오는 중이에요")
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -40,7 +40,7 @@ struct ProductDetailView: View {
       }
       .safeAreaInset(edge: .bottom) {
         Button {
-          Task { await interactor.send(.favoriteButtonTapped) }
+          store.dispatch(.favoriteButtonTapped)
         } label: {
           Label(product.isFavorite ? "찜 해제" : "찜하기", systemImage: product.isFavorite ? "heart.fill" : "heart")
             .font(.headline)
@@ -61,7 +61,7 @@ struct ProductDetailView: View {
         Text("잠시 후 다시 시도해 주세요.")
       } actions: {
         Button("다시 시도") {
-          Task { await interactor.send(.retryButtonTapped) }
+          store.dispatch(.retryButtonTapped)
         }
         .buttonStyle(.borderedProminent)
       }
