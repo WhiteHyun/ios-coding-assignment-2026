@@ -1,0 +1,13 @@
+{
+  "products": [
+    {
+      "id": 1,
+      "title": "Sample product",
+      "price": 9.99,
+      "thumbnail": "https://example.com/image.png"
+    }
+  ],
+  "total": 1,
+  "skip": 0,
+  "limit": 30
+}
