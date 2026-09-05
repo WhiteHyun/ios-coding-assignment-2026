@@ -1,10 +1,11 @@
+import Architecture
 import Observation
 import Testing
 @testable import JNAssignment
 
 @MainActor
 @Suite(.timeLimit(.minutes(1)))
-struct ProductDetailInteractorTests {
+struct ProductDetailReducerTests {
   private let favorites: LocalFavoriteRepository = .init(storage: InMemoryStorage())
   private let product: ProductDetail = .init(
     id: 1,
@@ -27,29 +28,28 @@ struct ProductDetailInteractorTests {
     repository.detailResult = .success(product)
     var favoriteListProduct = listProduct
     favoriteListProduct.isFavorite = true
-    let list = ProductListInteractor(
+    let list = Store(reducer: ProductListReducer(
       productListUseCase: ProductListUseCase(productRepository: repository, favoriteRepository: favorites),
       favoriteUseCase: FavoriteUseCase(repository: favorites),
-    )
-    let detail = makeInteractor(repository: repository)
+    ))
+    let detail = makeStore(repository: repository)
     var favoriteProduct = product
     favoriteProduct.isFavorite = true
-    let listTask = Task { await list.send(.task) }
+    list.dispatch(.appeared)
     await waitForList([favoriteListProduct], in: list)
-    listTask.cancel()
-    await listTask.value
+    list.dispatch(.disappeared)
 
-    let detailTask = Task { await detail.send(.task) }
-    defer { detailTask.cancel() }
+    detail.dispatch(.appeared)
+    defer { detail.dispatch(.disappeared) }
     await waitForDetail(favoriteProduct, in: detail)
-    await detail.send(.favoriteButtonTapped)
+    detail.dispatch(.favoriteButtonTapped)
     await waitForDetail(product, in: detail)
     #expect(list.state.phase == .loaded([favoriteListProduct]))
 
-    let resumedList = Task { await list.send(.task) }
-    defer { resumedList.cancel() }
+    list.dispatch(.appeared)
+    defer { list.dispatch(.disappeared) }
     await waitForList([listProduct], in: list)
-    await list.send(.favoriteButtonTapped(productID: 1))
+    list.dispatch(.favoriteButtonTapped(productID: 1))
     await waitForDetail(favoriteProduct, in: detail)
     await waitForList([favoriteListProduct], in: list)
     #expect(repository.requestCount == 1)
@@ -60,61 +60,79 @@ struct ProductDetailInteractorTests {
   func `failed detail requests can be retried without changing favorites before loading`() async {
     let repository = StubProductRepository(result: .success([]))
     repository.detailResult = .failure(TestError.offline)
-    let interactor = makeInteractor(repository: repository)
-    await interactor.send(.favoriteButtonTapped)
+    let store = makeStore(repository: repository)
+    store.dispatch(.favoriteButtonTapped)
     #expect(favorites.fetchProductIDs().isEmpty)
-    await interactor.send(.task)
-    #expect(interactor.state.phase == .failed)
-    await interactor.send(.favoriteButtonTapped)
+    store.dispatch(.appeared)
+    await waitForPhase(.failed, in: store)
+    #expect(store.state.phase == .failed)
+    store.dispatch(.favoriteButtonTapped)
     #expect(favorites.fetchProductIDs().isEmpty)
 
     repository.detailResult = .success(product)
-    await interactor.send(.retryButtonTapped)
-    #expect(interactor.state.retryCount == 1)
-    let retry = Task { await interactor.send(.task) }
-    defer { retry.cancel() }
-    await waitForDetail(product, in: interactor)
+    store.dispatch(.retryButtonTapped)
+    defer { store.dispatch(.disappeared) }
+    await waitForDetail(product, in: store)
     #expect(repository.detailRequestIDs == [1, 1])
   }
 
   @Test
   func `cancelled late responses are discarded and a new appearance fetches detail again`() async {
     let repository = ControlledProductRepository()
-    let interactor = makeInteractor(repository: repository)
-    let first = Task { await interactor.send(.task) }
+    let store = makeStore(repository: repository)
+    store.dispatch(.appeared)
     await repository.waitForRequest()
-    #expect(interactor.state.phase == .loading)
-    await interactor.send(.task)
+    #expect(store.state.phase == .loading)
+    store.dispatch(.appeared)
     #expect(repository.detailRequestIDs == [1])
-    first.cancel()
+    store.dispatch(.disappeared)
     repository.completeDetail(with: .success(product))
-    await first.value
-    #expect(interactor.state.phase == .idle)
+    #expect(store.state.phase == .idle)
 
-    let next = Task { await interactor.send(.task) }
-    defer { next.cancel() }
+    store.dispatch(.appeared)
+    defer { store.dispatch(.disappeared) }
     await repository.waitForRequest()
     favorites.save(productIDs: [1])
     repository.completeDetail(with: .success(product))
     var favoriteProduct = product
     favoriteProduct.isFavorite = true
-    await waitForDetail(favoriteProduct, in: interactor)
+    await waitForDetail(favoriteProduct, in: store)
     #expect(repository.detailRequestIDs == [1, 1])
   }
 
-  private func makeInteractor(repository: any ProductRepository) -> ProductDetailInteractor {
-    ProductDetailInteractor(
-      productID: product.id,
-      productDetailUseCase: ProductDetailUseCase(productRepository: repository, favoriteRepository: favorites),
-      favoriteUseCase: FavoriteUseCase(repository: favorites),
+  @Test
+  func `returning to a loaded detail fetches updated server information`() async {
+    let repository = StubProductRepository(result: .success([]))
+    repository.detailResult = .success(product)
+    let store = makeStore(repository: repository)
+    store.dispatch(.appeared)
+    await waitForDetail(product, in: store)
+    store.dispatch(.disappeared)
+
+    let updated = ProductDetail(
+      id: product.id,
+      title: "Updated detail",
+      price: product.price,
+      description: product.description,
+      images: product.images,
+      brand: product.brand,
+      category: product.category,
+      rating: product.rating,
+      stock: product.stock,
+      isFavorite: false,
     )
+    repository.detailResult = .success(updated)
+    store.dispatch(.appeared)
+    defer { store.dispatch(.disappeared) }
+    await waitForDetail(updated, in: store)
+    #expect(repository.detailRequestIDs == [product.id, product.id])
   }
 
-  private func waitForDetail(_ product: ProductDetail, in interactor: ProductDetailInteractor) async {
-    while interactor.state.phase != .loaded(product) {
+  private func waitForPhase(_ phase: ProductDetailReducer.ProductDetailPhase, in store: StoreOf<ProductDetailReducer>) async {
+    while store.state.phase != phase {
       await withCheckedContinuation { continuation in
         withObservationTracking {
-          _ = interactor.state.phase
+          _ = store.state.phase
         } onChange: {
           continuation.resume()
         }
@@ -122,11 +140,31 @@ struct ProductDetailInteractorTests {
     }
   }
 
-  private func waitForList(_ products: [Product], in interactor: ProductListInteractor) async {
-    while interactor.state.phase != .loaded(products) {
+  private func makeStore(repository: any ProductRepository) -> StoreOf<ProductDetailReducer> {
+    Store(reducer: ProductDetailReducer(
+      productID: product.id,
+      productDetailUseCase: ProductDetailUseCase(productRepository: repository, favoriteRepository: favorites),
+      favoriteUseCase: FavoriteUseCase(repository: favorites),
+    ))
+  }
+
+  private func waitForDetail(_ product: ProductDetail, in store: StoreOf<ProductDetailReducer>) async {
+    while store.state.phase != .loaded(product) {
       await withCheckedContinuation { continuation in
         withObservationTracking {
-          _ = interactor.state.phase
+          _ = store.state.phase
+        } onChange: {
+          continuation.resume()
+        }
+      }
+    }
+  }
+
+  private func waitForList(_ products: [Product], in store: StoreOf<ProductListReducer>) async {
+    while store.state.phase != .loaded(products) {
+      await withCheckedContinuation { continuation in
+        withObservationTracking {
+          _ = store.state.phase
         } onChange: {
           continuation.resume()
         }
