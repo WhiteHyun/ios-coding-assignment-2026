@@ -6,14 +6,14 @@ struct ProductListView: View {
   var body: some View {
     content
       .navigationTitle("상품")
-      .task {
+      .task(id: interactor.state.retryCount) {
         await interactor.send(.task)
       }
   }
 
   @ViewBuilder
   private var content: some View {
-    switch interactor.state {
+    switch interactor.state.phase {
     case .idle, .loading:
       ProgressView("상품을 불러오는 중이에요")
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -23,7 +23,11 @@ struct ProductListView: View {
         ContentUnavailableView("상품이 없어요", systemImage: "shippingbox")
       } else {
         List(products) { product in
-          ProductRow(product: product)
+          ProductRow(product: product) {
+            Task {
+              await interactor.send(.favoriteButtonTapped(productID: product.id))
+            }
+          }
         }
         .listStyle(.plain)
       }

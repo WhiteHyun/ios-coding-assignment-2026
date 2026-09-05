@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		BA411940304B170000881408 /* Networker in Frameworks */ = {isa = PBXBuildFile; productRef = BA411941304B170000881408 /* Networker */; };
+		BA411950304B170000881408 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = BA411951304B170000881408 /* Storage */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +46,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BA411940304B170000881408 /* Networker in Frameworks */,
+				BA411950304B170000881408 /* Storage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -98,6 +100,7 @@
 			name = JNAssignment;
 			packageProductDependencies = (
 				BA411941304B170000881408 /* Networker */,
+				BA411951304B170000881408 /* Storage */,
 			);
 			productName = JNAssignment;
 			productReference = BA41182E304AEF1B00881408 /* JNAssignment.app */;
@@ -497,6 +500,10 @@
 		BA411941304B170000881408 /* Networker */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Networker;
+		};
+		BA411951304B170000881408 /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Storage;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

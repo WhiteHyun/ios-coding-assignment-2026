@@ -6,40 +6,73 @@ final class ProductListInteractor: Interactor {
   enum Action {
     case task
     case retryButtonTapped
+    case favoriteButtonTapped(productID: Int)
   }
 
-  enum State: Equatable {
+  struct State: Equatable {
+    var phase: ProductListPhase = .idle
+    var retryCount = 0
+  }
+
+  enum ProductListPhase: Equatable {
     case idle
     case loading
     case loaded([Product])
     case failed
   }
 
-  private(set) var state: State = .idle
-  private let repository: any ProductRepository
+  private(set) var state: State = .init()
+  private let productListUseCase: ProductListUseCase
+  private let favoriteUseCase: FavoriteUseCase
+  private var isObservingProducts = false
 
-  init(repository: any ProductRepository) {
-    self.repository = repository
+  init(productListUseCase: ProductListUseCase, favoriteUseCase: FavoriteUseCase) {
+    self.productListUseCase = productListUseCase
+    self.favoriteUseCase = favoriteUseCase
   }
 
   func send(_ action: Action) async {
     switch action {
     case .task:
-      guard state == .idle else { return }
+      if !isObservingProducts, state.phase != .failed {
+        await observeProducts()
+      }
 
     case .retryButtonTapped:
-      guard state == .failed else { return }
-    }
+      if state.phase == .failed {
+        state.phase = .idle
+        state.retryCount += 1
+      }
 
-    state = .loading
+    case let .favoriteButtonTapped(productID):
+      if case let .loaded(products) = state.phase, products.contains(where: { $0.id == productID }) {
+        favoriteUseCase.toggle(productID: productID)
+      }
+    }
+  }
+
+  private func observeProducts() async {
+    isObservingProducts = true
+    defer { isObservingProducts = false }
+    if state.phase == .idle {
+      state.phase = .loading
+    }
     do {
-      let products = try await repository.fetchProducts()
+      let updates = try await productListUseCase.observeProducts()
+      for await products in updates {
+        if !Task.isCancelled {
+          state.phase = .loaded(products)
+        }
+      }
       try Task.checkCancellation()
-      state = .loaded(products)
-    } catch is CancellationError {
-      state = .idle
     } catch {
-      state = Task.isCancelled ? .idle : .failed
+      if error is CancellationError || Task.isCancelled {
+        if state.phase == .loading {
+          state.phase = .idle
+        }
+      } else {
+        state.phase = .failed
+      }
     }
   }
 }
