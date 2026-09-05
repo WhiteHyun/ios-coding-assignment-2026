@@ -7,11 +7,13 @@ final class ProductListInteractor: Interactor {
     case task
     case retryButtonTapped
     case favoriteButtonTapped(productID: Int)
+    case layoutChanged(ProductListLayout)
   }
 
   struct State: Equatable {
     var phase: ProductListPhase = .idle
     var retryCount = 0
+    var layout: ProductListLayout = .list
   }
 
   enum ProductListPhase: Equatable {
@@ -48,6 +50,9 @@ final class ProductListInteractor: Interactor {
       if case let .loaded(products) = state.phase, products.contains(where: { $0.id == productID }) {
         favoriteUseCase.toggle(productID: productID)
       }
+
+    case let .layoutChanged(layout):
+      state.layout = layout
     }
   }
 

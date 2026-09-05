@@ -164,6 +164,48 @@ struct ProductListInteractorTests {
     #expect(repository.requestCount == 1)
   }
 
+  @Test
+  func `switching layouts preserves products and favorites without refetching`() async {
+    let repository = StubProductRepository(result: .success([product]))
+    let interactor = makeInteractor(repository: repository)
+    #expect(interactor.state.layout == .list)
+    let observation = Task { await interactor.send(.task) }
+    await waitForProducts([product], in: interactor)
+
+    await interactor.send(.layoutChanged(.grid))
+    #expect(interactor.state.layout == .grid)
+    #expect(interactor.state.phase == .loaded([product]))
+    await interactor.send(.favoriteButtonTapped(productID: product.id))
+    await waitForProducts([favoriteProduct], in: interactor)
+    await interactor.send(.layoutChanged(.list))
+    #expect(interactor.state.layout == .list)
+    #expect(interactor.state.phase == .loaded([favoriteProduct]))
+
+    await interactor.send(.layoutChanged(.grid))
+    observation.cancel()
+    await observation.value
+    let resumed = Task { await interactor.send(.task) }
+    defer { resumed.cancel() }
+    await waitForProducts([favoriteProduct], in: interactor)
+    #expect(interactor.state.layout == .grid)
+    #expect(repository.requestCount == 1)
+  }
+
+  @Test
+  func `layout selection survives loading and retry`() async {
+    let repository = StubProductRepository(result: .failure(TestError.offline))
+    let interactor = makeInteractor(repository: repository)
+    await interactor.send(.layoutChanged(.grid))
+    await interactor.send(.task)
+    #expect(interactor.state.phase == .failed)
+    repository.result = .success([product])
+    await interactor.send(.retryButtonTapped)
+    let retry = Task { await interactor.send(.task) }
+    defer { retry.cancel() }
+    await waitForProducts([product], in: interactor)
+    #expect(interactor.state.layout == .grid)
+  }
+
   private func makeInteractor(repository: any ProductRepository) -> ProductListInteractor {
     ProductListInteractor(
       productListUseCase: ProductListUseCase(productRepository: repository, favoriteRepository: favoriteRepository),
