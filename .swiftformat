@@ -1,0 +1,62 @@
+# Swift 버전 설정
+--swift-version 6.2
+--language-mode 6
+
+# 포맷 옵션
+--indent 2                                  # 들여쓰기 2칸
+--ifdef no-indent                           # #if/#endif 들여쓰기 안 함
+--indent-strings true                       # 멀티라인 문자열 들여쓰기
+--max-width 130                             # 최대 줄 너비 130자
+--empty-braces linebreak                    # 빈 중괄호 줄바꿈 처리
+--extension-acl on-declarations             # extension 접근 제어를 선언부에 배치
+--guard-else next-line                      # guard-else 다음 줄 배치
+--short-optionals always                    # Optional 항상 ? 축약형 사용
+--doc-comments preserve                     # 문서 주석 형식 유지
+--import-grouping testable-bottom           # @testable import 하단 배치
+--trailing-commas multi-element-lists       # 복수 요소 리스트에만 후행 쉼표
+--single-line-for-each convert              # 단일행 forEach도 for문 변환
+
+# 줄바꿈
+--wrap-ternary before-operators             # 삼항 연산자 연산자 앞에서 줄바꿈
+--wrap-string-interpolation preserve        # 문자열 보간 줄바꿈 유지
+--wrap-arguments before-first               # 함수 인자 첫 번째 앞에서 줄바꿈
+--wrap-collections before-first             # 컬렉션 요소 첫 번째 앞에서 줄바꿈
+--wrap-conditions before-first              # 조건문 첫 번째 앞에서 줄바꿈
+--wrap-return-type never                    # 반환 타입 줄바꿈 안 함
+--wrap-effects never                        # throws/async 줄바꿈 안 함
+--wrap-type-aliases before-first            # typealias 첫 번째 앞에서 줄바꿈
+--allow-partial-wrapping false              # 부분 줄바꿈 비허용
+
+# 어트리뷰트 배치
+--func-attributes prev-line                 # 함수 어트리뷰트 윗줄
+--computed-var-attributes prev-line         # 계산 프로퍼티 어트리뷰트 윗줄
+--stored-var-attributes same-line           # 저장 프로퍼티 어트리뷰트 같은 줄
+--complex-attributes prev-line              # 복합 어트리뷰트 윗줄
+--type-attributes prev-line                 # 타입 어트리뷰트 윗줄
+
+# View/ViewBuilder struct에 합성 init 선호
+--prefer-synthesized-init-for-internal-structs View,ViewBuilder
+
+# modifier 순서: override를 접근 제어 뒤에 배치
+--modifier-order private,fileprivate,internal,package,public,open,private(set),fileprivate(set),internal(set),package(set),public(set),open(set),override,final,dynamic,optional,required,convenience,indirect,isolated,nonisolated,nonisolated(unsafe),lazy,weak,unowned,unowned(safe),unowned(unsafe),static,class,borrowing,consuming,mutating,nonmutating,prefix,infix,postfix,async
+
+# 규칙 활성화 (opt-in)
+--enable                                    \
+    blankLineAfterSwitchCase,               \ # switch case 사이 빈 줄 추가
+    blockComments,                          \ # 블록 주석을 /// 스타일로 변환
+    markTypes,                              \ # 타입 정의 전 // MARK: 자동 추가
+    noGuardInTests,                         \ # 테스트에서 guard 대신 #require 사용
+    preferFinalClasses,                     \ # final class 자동 처리
+    propertyTypes,                          \ # 프로퍼티 타입 표기 스타일 통일
+    singlePropertyPerLine,                  \ # let/var 선언문 한 줄에 하나씩
+    testSuiteAccessControl,                 \ # 테스트 메서드 접근 제어 정리
+    validateTestCases,                      \ # 테스트 메서드 네이밍/어트리뷰트 검증
+    wrapEnumCases,                          \ # enum case 줄바꿈 처리
+    wrapMultilineConditionalAssignment        # 멀티라인 조건부 할당 줄바꿈
+
+# 규칙 비활성화
+--disable wrapMultilineStatementBraces        # 여러 줄 구문의 중괄호 위치 유지
+
+# 제외할 폴더 및 파일
+--exclude Carthage,Pods,Derived,Tuist/.build,.build,Dependencies,**/*.xcodeproj,**/*.xcworkspace
+
