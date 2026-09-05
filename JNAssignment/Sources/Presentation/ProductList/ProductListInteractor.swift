@@ -5,14 +5,13 @@ import Observation
 final class ProductListInteractor: Interactor {
   enum Action {
     case task
-    case observeFavorites
     case retryButtonTapped
     case favoriteButtonTapped(productID: Int)
   }
 
   struct State: Equatable {
     var phase: ProductListPhase = .idle
-    var favoriteIDs: Set<Int> = []
+    var retryCount = 0
   }
 
   enum ProductListPhase: Equatable {
@@ -23,31 +22,26 @@ final class ProductListInteractor: Interactor {
   }
 
   private(set) var state: State = .init()
-  private let repository: any ProductRepository
+  private let productListUseCase: ProductListUseCase
   private let favoriteUseCase: FavoriteUseCase
+  private var isObservingProducts = false
 
-  init(repository: any ProductRepository, favoriteUseCase: FavoriteUseCase) {
-    self.repository = repository
+  init(productListUseCase: ProductListUseCase, favoriteUseCase: FavoriteUseCase) {
+    self.productListUseCase = productListUseCase
     self.favoriteUseCase = favoriteUseCase
   }
 
   func send(_ action: Action) async {
     switch action {
     case .task:
-      if state.phase == .idle {
-        await loadProducts()
-      }
-
-    case .observeFavorites:
-      for await productIDs in favoriteUseCase.observeProductIDs() {
-        if !Task.isCancelled {
-          state.favoriteIDs = productIDs
-        }
+      if !isObservingProducts, state.phase != .failed {
+        await observeProducts()
       }
 
     case .retryButtonTapped:
       if state.phase == .failed {
-        await loadProducts()
+        state.phase = .idle
+        state.retryCount += 1
       }
 
     case let .favoriteButtonTapped(productID):
@@ -57,16 +51,28 @@ final class ProductListInteractor: Interactor {
     }
   }
 
-  private func loadProducts() async {
-    state.phase = .loading
+  private func observeProducts() async {
+    isObservingProducts = true
+    defer { isObservingProducts = false }
+    if state.phase == .idle {
+      state.phase = .loading
+    }
     do {
-      let products = try await repository.fetchProducts()
+      let updates = try await productListUseCase.observeProducts()
+      for await products in updates {
+        if !Task.isCancelled {
+          state.phase = .loaded(products)
+        }
+      }
       try Task.checkCancellation()
-      state.phase = .loaded(products)
-    } catch is CancellationError {
-      state.phase = .idle
     } catch {
-      state.phase = Task.isCancelled ? .idle : .failed
+      if error is CancellationError || Task.isCancelled {
+        if state.phase == .loading {
+          state.phase = .idle
+        }
+      } else {
+        state.phase = .failed
+      }
     }
   }
 }

@@ -6,11 +6,8 @@ struct ProductListView: View {
   var body: some View {
     content
       .navigationTitle("상품")
-      .task {
+      .task(id: interactor.state.retryCount) {
         await interactor.send(.task)
-      }
-      .task {
-        await interactor.send(.observeFavorites)
       }
   }
 
@@ -26,7 +23,7 @@ struct ProductListView: View {
         ContentUnavailableView("상품이 없어요", systemImage: "shippingbox")
       } else {
         List(products) { product in
-          ProductRow(product: product, isFavorite: interactor.state.favoriteIDs.contains(product.id)) {
+          ProductRow(product: product) {
             Task {
               await interactor.send(.favoriteButtonTapped(productID: product.id))
             }

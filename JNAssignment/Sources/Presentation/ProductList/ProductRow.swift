@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ProductRow: View {
   let product: Product
-  let isFavorite: Bool
   let favoriteButtonTapped: () -> Void
 
   var body: some View {
@@ -36,14 +35,14 @@ struct ProductRow: View {
       .frame(maxWidth: .infinity, alignment: .leading)
 
       Button(action: favoriteButtonTapped) {
-        Image(systemName: isFavorite ? "heart.fill" : "heart")
-          .foregroundStyle(isFavorite ? .red : .secondary)
+        Image(systemName: product.isFavorite ? "heart.fill" : "heart")
+          .foregroundStyle(product.isFavorite ? .red : .secondary)
           .frame(width: 44, height: 44)
       }
       .buttonStyle(.borderless)
       .accessibilityLabel("\(product.title) 찜")
-      .accessibilityValue(isFavorite ? "선택됨" : "선택 안 됨")
-      .accessibilityHint(isFavorite ? "찜 해제" : "찜 추가")
+      .accessibilityValue(product.isFavorite ? "선택됨" : "선택 안 됨")
+      .accessibilityHint(product.isFavorite ? "찜 해제" : "찜 추가")
     }
     .padding(.vertical, 8)
     .accessibilityElement(children: .contain)

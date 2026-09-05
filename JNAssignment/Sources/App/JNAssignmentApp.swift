@@ -20,7 +20,10 @@ struct JNAssignmentApp: App {
       // TODO: DIContainer를 도입해 Repository 생성과 주입 책임을 분리한다.
       ContentView(
         interactor: ProductListInteractor(
-          repository: RemoteProductRepository(provider: APIProvider(session: .shared)),
+          productListUseCase: ProductListUseCase(
+            productRepository: RemoteProductRepository(provider: APIProvider(session: .shared)),
+            favoriteRepository: favoriteRepository,
+          ),
           favoriteUseCase: FavoriteUseCase(repository: favoriteRepository),
         )
       )
