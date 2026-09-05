@@ -1,4 +1,5 @@
 import Architecture
+import DependencyInjection
 import Observation
 import Testing
 @testable import JNAssignment
@@ -28,10 +29,8 @@ struct ProductDetailReducerTests {
     repository.detailResult = .success(product)
     var favoriteListProduct = listProduct
     favoriteListProduct.isFavorite = true
-    let list = Store(reducer: ProductListReducer(
-      productListUseCase: ProductListUseCase(productRepository: repository, favoriteRepository: favorites),
-      favoriteUseCase: FavoriteUseCase(repository: favorites),
-    ))
+    registerDependencies(repository: repository)
+    let list = Store(reducer: ProductListReducer())
     let detail = makeStore(repository: repository)
     var favoriteProduct = product
     favoriteProduct.isFavorite = true
@@ -141,11 +140,21 @@ struct ProductDetailReducerTests {
   }
 
   private func makeStore(repository: any ProductRepository) -> StoreOf<ProductDetailReducer> {
-    Store(reducer: ProductDetailReducer(
-      productID: product.id,
-      productDetailUseCase: ProductDetailUseCase(productRepository: repository, favoriteRepository: favorites),
-      favoriteUseCase: FavoriteUseCase(repository: favorites),
-    ))
+    registerDependencies(repository: repository)
+    return Store(reducer: ProductDetailReducer(productID: product.id))
+  }
+
+  private func registerDependencies(repository: any ProductRepository) {
+    let container = DIContainer.shared
+    container.register(
+      type: ProductListUseCase.self,
+      ProductListUseCase(productRepository: repository, favoriteRepository: favorites),
+    )
+    container.register(
+      type: ProductDetailUseCase.self,
+      ProductDetailUseCase(productRepository: repository, favoriteRepository: favorites),
+    )
+    container.register(type: FavoriteUseCase.self, FavoriteUseCase(repository: favorites))
   }
 
   private func waitForDetail(_ product: ProductDetail, in store: StoreOf<ProductDetailReducer>) async {

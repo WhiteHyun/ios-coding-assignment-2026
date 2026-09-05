@@ -10,6 +10,7 @@
 		BA411940304B170000881408 /* Networker in Frameworks */ = {isa = PBXBuildFile; productRef = BA411941304B170000881408 /* Networker */; };
 		BA411950304B170000881408 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = BA411951304B170000881408 /* Storage */; };
 		BA411960304B170000881408 /* Architecture in Frameworks */ = {isa = PBXBuildFile; productRef = BA411961304B170000881408 /* Architecture */; };
+		BA411970304B170000881408 /* DependencyInjection in Frameworks */ = {isa = PBXBuildFile; productRef = BA411971304B170000881408 /* DependencyInjection */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,6 +50,7 @@
 				BA411940304B170000881408 /* Networker in Frameworks */,
 				BA411950304B170000881408 /* Storage in Frameworks */,
 				BA411960304B170000881408 /* Architecture in Frameworks */,
+				BA411970304B170000881408 /* DependencyInjection in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -104,6 +106,7 @@
 				BA411941304B170000881408 /* Networker */,
 				BA411951304B170000881408 /* Storage */,
 				BA411961304B170000881408 /* Architecture */,
+				BA411971304B170000881408 /* DependencyInjection */,
 			);
 			productName = JNAssignment;
 			productReference = BA41182E304AEF1B00881408 /* JNAssignment.app */;
@@ -512,6 +515,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = BA411942304B170000881408 /* XCLocalSwiftPackageReference "Core" */;
 			productName = Architecture;
+		};
+		BA411971304B170000881408 /* DependencyInjection */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BA411942304B170000881408 /* XCLocalSwiftPackageReference "Core" */;
+			productName = DependencyInjection;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -1,4 +1,5 @@
 import Architecture
+import DependencyInjection
 import Observation
 import Testing
 @testable import JNAssignment
@@ -204,10 +205,7 @@ struct ProductListReducerTests {
   @Test
   func `reducer changes state without executing network or storage work`() {
     let repository = StubProductRepository(result: .success([product]))
-    let reducer = ProductListReducer(
-      productListUseCase: ProductListUseCase(productRepository: repository, favoriteRepository: favoriteRepository),
-      favoriteUseCase: favoriteUseCase,
-    )
+    let reducer = makeReducer(repository: repository)
     var state = reducer.initialState
     _ = reducer.reduce(state: &state, action: .appeared)
     #expect(state.phase == .loading)
@@ -237,10 +235,17 @@ struct ProductListReducerTests {
   }
 
   private func makeStore(repository: any ProductRepository) -> StoreOf<ProductListReducer> {
-    Store(reducer: ProductListReducer(
-      productListUseCase: ProductListUseCase(productRepository: repository, favoriteRepository: favoriteRepository),
-      favoriteUseCase: favoriteUseCase,
-    ))
+    Store(reducer: makeReducer(repository: repository))
+  }
+
+  private func makeReducer(repository: any ProductRepository) -> ProductListReducer {
+    let container = DIContainer.shared
+    container.register(
+      type: ProductListUseCase.self,
+      ProductListUseCase(productRepository: repository, favoriteRepository: favoriteRepository),
+    )
+    container.register(type: FavoriteUseCase.self, favoriteUseCase)
+    return ProductListReducer()
   }
 
   private func waitForProducts(_ expected: [Product], in store: StoreOf<ProductListReducer>) async {
