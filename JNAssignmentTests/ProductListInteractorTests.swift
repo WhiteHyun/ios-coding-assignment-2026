@@ -196,7 +196,7 @@ struct ProductListInteractorTests {
   }
 
   private var product: Product {
-    Product(id: 1, title: "Sample product", price: 9.99, thumbnail: nil, isFavorite: false)
+    Product(id: 1, title: "Sample product", price: 9.99, thumbnail: nil, description: nil, isFavorite: false)
   }
 
   private var favoriteProduct: Product {

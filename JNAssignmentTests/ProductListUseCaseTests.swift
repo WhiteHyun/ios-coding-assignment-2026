@@ -6,8 +6,8 @@ import Testing
 struct ProductListUseCaseTests {
   @Test
   func `emits complete products and updates favorites without fetching again`() async throws {
-    let first = Product(id: 1, title: "First", price: 9.99, thumbnail: nil, isFavorite: false)
-    let second = Product(id: 2, title: "Second", price: 19.99, thumbnail: nil, isFavorite: true)
+    let first = Product(id: 1, title: "First", price: 9.99, thumbnail: nil, description: nil, isFavorite: false)
+    let second = Product(id: 2, title: "Second", price: 19.99, thumbnail: nil, description: nil, isFavorite: true)
     let repository = StubProductRepository(result: .success([first, second]))
     let favorites = LocalFavoriteRepository(storage: InMemoryStorage())
     favorites.save(productIDs: [1, 99])
@@ -28,7 +28,7 @@ struct ProductListUseCaseTests {
 
   @Test
   func `resubscription reuses fetched products with the current favorites`() async throws {
-    let product = Product(id: 1, title: "Sample", price: 9.99, thumbnail: nil, isFavorite: false)
+    let product = Product(id: 1, title: "Sample", price: 9.99, thumbnail: nil, description: nil, isFavorite: false)
     let repository = StubProductRepository(result: .success([product]))
     let favorites = LocalFavoriteRepository(storage: InMemoryStorage())
     let useCase = ProductListUseCase(productRepository: repository, favoriteRepository: favorites)

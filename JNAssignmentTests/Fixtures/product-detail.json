@@ -1,0 +1,7 @@
+{
+  "id": 42,
+  "title": "Detail product",
+  "description": "Product description from the detail API.",
+  "price": 29.99,
+  "thumbnail": "https://example.com/detail.png"
+}

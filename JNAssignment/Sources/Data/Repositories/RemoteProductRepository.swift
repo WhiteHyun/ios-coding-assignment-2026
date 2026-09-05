@@ -19,4 +19,16 @@ struct RemoteProductRepository: ProductRepository {
     }
     return response.products.map { $0.toDomain() }
   }
+
+  func fetchProduct(id: Int) async throws -> Product {
+    do {
+      let response: ProductDTO = try await provider.request(ProductDetailEndpoint(productID: id))
+      return response.toDomain()
+    } catch {
+      if case .cancelled = error {
+        throw CancellationError()
+      }
+      throw error
+    }
+  }
 }

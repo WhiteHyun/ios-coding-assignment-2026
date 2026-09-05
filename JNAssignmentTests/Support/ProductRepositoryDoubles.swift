@@ -1,3 +1,4 @@
+import Foundation
 @testable import JNAssignment
 
 // MARK: - StubProductRepository
@@ -6,9 +7,18 @@
 final class StubProductRepository: ProductRepository {
   var result: Result<[Product], any Error>
   private(set) var requestCount = 0
+  private(set) var detailRequestIDs: [Int] = []
 
   init(result: Result<[Product], any Error>) {
     self.result = result
+  }
+
+  func fetchProduct(id: Int) async throws -> Product {
+    detailRequestIDs.append(id)
+    guard let product = try result.get().first(where: { $0.id == id }) else {
+      throw URLError(.resourceUnavailable)
+    }
+    return product
   }
 
   func fetchProducts() async throws -> [Product] {
@@ -22,6 +32,7 @@ final class StubProductRepository: ProductRepository {
 @MainActor
 final class ControlledProductRepository: ProductRepository {
   private(set) var requestCount = 0
+  private(set) var detailRequestIDs: [Int] = []
   private let requests: (stream: AsyncStream<Void>, continuation: AsyncStream<Void>.Continuation) = AsyncStream.makeStream()
   private var continuation: CheckedContinuation<[Product], any Error>?
 
@@ -31,6 +42,14 @@ final class ControlledProductRepository: ProductRepository {
       self.continuation = continuation
       requests.continuation.yield(())
     }
+  }
+
+  func fetchProduct(id: Int) async throws -> Product {
+    detailRequestIDs.append(id)
+    guard let product = try await fetchProducts().first(where: { $0.id == id }) else {
+      throw URLError(.resourceUnavailable)
+    }
+    return product
   }
 
   func waitForRequest() async {
