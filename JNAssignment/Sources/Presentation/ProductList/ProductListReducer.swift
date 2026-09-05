@@ -1,4 +1,5 @@
 import Architecture
+import DependencyInjection
 
 @MainActor
 struct ProductListReducer: Reducer {
@@ -32,12 +33,15 @@ struct ProductListReducer: Reducer {
   }
 
   let initialState: State = .init()
-  private let productListUseCase: ProductListUseCase
-  private let favoriteUseCase: FavoriteUseCase
+  @Dependency private var productListUseCase: ProductListUseCase
+  @Dependency private var favoriteUseCase: FavoriteUseCase
+
+  init() {
+  }
 
   init(productListUseCase: ProductListUseCase, favoriteUseCase: FavoriteUseCase) {
-    self.productListUseCase = productListUseCase
-    self.favoriteUseCase = favoriteUseCase
+    _productListUseCase = Dependency(wrappedValue: productListUseCase)
+    _favoriteUseCase = Dependency(wrappedValue: favoriteUseCase)
   }
 
   func reduce(state: inout State, action: Action) -> Effect {

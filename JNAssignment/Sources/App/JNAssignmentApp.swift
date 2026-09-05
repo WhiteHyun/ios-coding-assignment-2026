@@ -18,16 +18,9 @@ struct JNAssignmentApp: App {
   var body: some Scene {
     WindowGroup {
       ContentView(
-        store: Store(reducer: ProductListReducer(
-          productListUseCase: ProductListUseCase(),
-          favoriteUseCase: FavoriteUseCase(),
-        )),
+        store: Store(reducer: ProductListReducer()),
         makeDetailStore: { productID in
-          Store(reducer: ProductDetailReducer(
-            productID: productID,
-            productDetailUseCase: ProductDetailUseCase(),
-            favoriteUseCase: FavoriteUseCase(),
-          ))
+          Store(reducer: ProductDetailReducer(productID: productID))
         },
       )
     }

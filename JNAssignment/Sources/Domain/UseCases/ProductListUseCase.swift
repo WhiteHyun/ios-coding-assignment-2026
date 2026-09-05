@@ -1,17 +1,12 @@
-import DependencyInjection
-
 @MainActor
 final class ProductListUseCase {
-  @Dependency private var productRepository: any ProductRepository
-  @Dependency private var favoriteRepository: any FavoriteRepository
+  private let productRepository: any ProductRepository
+  private let favoriteRepository: any FavoriteRepository
   private var cachedProducts: [Product]?
 
-  init() {
-  }
-
   init(productRepository: any ProductRepository, favoriteRepository: any FavoriteRepository) {
-    _productRepository = Dependency(wrappedValue: productRepository)
-    _favoriteRepository = Dependency(wrappedValue: favoriteRepository)
+    self.productRepository = productRepository
+    self.favoriteRepository = favoriteRepository
   }
 
   func observeProducts() async throws -> AsyncMapSequence<AsyncStream<Set<Int>>, [Product]> {

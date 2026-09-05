@@ -17,6 +17,39 @@ struct DependencyInjectionTests {
   }
 
   @Test
+  func `factory resolves registered dependencies and creates a fresh object`() {
+    let container = DIContainer()
+    let service = SampleService()
+    var creations = 0
+    container.register(type: (any Service).self, service)
+    container.register(type: FactoryConsumer.self) { resolver in
+      creations += 1
+      return FactoryConsumer(service: resolver.resolve(type: (any Service).self))
+    }
+    #expect(creations == 0)
+    let first = container.resolve(type: FactoryConsumer.self)
+    let second = container.resolve(type: FactoryConsumer.self)
+    #expect(creations == 2)
+    #expect(first !== second)
+    #expect(first.service === service)
+    #expect(second.service === service)
+  }
+
+  @Test
+  func `each dependency wrapper keeps its own factory-created object`() {
+    let container = DIContainer()
+    container.register(type: (any Service).self, SampleService())
+    container.register(type: FactoryConsumer.self) { resolver in
+      FactoryConsumer(service: resolver.resolve(type: (any Service).self))
+    }
+    let first = Dependency<FactoryConsumer>(container: container)
+    let second = Dependency<FactoryConsumer>(container: container)
+    #expect(first.wrappedValue === first.wrappedValue)
+    #expect(first.wrappedValue !== second.wrappedValue)
+    #expect(first.wrappedValue.service === second.wrappedValue.service)
+  }
+
+  @Test
   func `identically named types do not collide`() {
     let container = DIContainer()
     container.register(type: FirstNamespace.Value.self, FirstNamespace.Value(number: 1))
@@ -117,5 +150,16 @@ private enum FirstNamespace {
 private enum SecondNamespace {
   struct Value {
     let number: Int
+  }
+}
+
+// MARK: - FactoryConsumer
+
+@MainActor
+private final class FactoryConsumer {
+  let service: any Service
+
+  init(service: any Service) {
+    self.service = service
   }
 }

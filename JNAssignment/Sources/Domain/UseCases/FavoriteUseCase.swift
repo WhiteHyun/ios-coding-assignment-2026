@@ -1,14 +1,9 @@
-import DependencyInjection
-
 @MainActor
 struct FavoriteUseCase {
-  @Dependency private var repository: any FavoriteRepository
-
-  init() {
-  }
+  private let repository: any FavoriteRepository
 
   init(repository: any FavoriteRepository) {
-    _repository = Dependency(wrappedValue: repository)
+    self.repository = repository
   }
 
   func toggle(productID: Int) {

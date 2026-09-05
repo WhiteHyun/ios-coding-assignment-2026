@@ -14,5 +14,20 @@ enum AppDependencies {
       type: (any FavoriteRepository).self,
       LocalFavoriteRepository(storage: UserDefaultsStorage(defaults: .standard)),
     )
+    container.register(type: ProductListUseCase.self) { resolver in
+      ProductListUseCase(
+        productRepository: resolver.resolve(type: (any ProductRepository).self),
+        favoriteRepository: resolver.resolve(type: (any FavoriteRepository).self),
+      )
+    }
+    container.register(type: ProductDetailUseCase.self) { resolver in
+      ProductDetailUseCase(
+        productRepository: resolver.resolve(type: (any ProductRepository).self),
+        favoriteRepository: resolver.resolve(type: (any FavoriteRepository).self),
+      )
+    }
+    container.register(type: FavoriteUseCase.self) { resolver in
+      FavoriteUseCase(repository: resolver.resolve(type: (any FavoriteRepository).self))
+    }
   }
 }

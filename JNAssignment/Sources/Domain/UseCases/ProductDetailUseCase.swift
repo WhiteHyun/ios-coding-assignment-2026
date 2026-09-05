@@ -1,16 +1,11 @@
-import DependencyInjection
-
 @MainActor
 struct ProductDetailUseCase {
-  @Dependency private var productRepository: any ProductRepository
-  @Dependency private var favoriteRepository: any FavoriteRepository
-
-  init() {
-  }
+  private let productRepository: any ProductRepository
+  private let favoriteRepository: any FavoriteRepository
 
   init(productRepository: any ProductRepository, favoriteRepository: any FavoriteRepository) {
-    _productRepository = Dependency(wrappedValue: productRepository)
-    _favoriteRepository = Dependency(wrappedValue: favoriteRepository)
+    self.productRepository = productRepository
+    self.favoriteRepository = favoriteRepository
   }
 
   func observeProduct(id: Int) async throws -> AsyncMapSequence<AsyncStream<Set<Int>>, ProductDetail> {
