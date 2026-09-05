@@ -5,41 +5,68 @@ import Observation
 final class ProductListInteractor: Interactor {
   enum Action {
     case task
+    case observeFavorites
     case retryButtonTapped
+    case favoriteButtonTapped(productID: Int)
   }
 
-  enum State: Equatable {
+  struct State: Equatable {
+    var phase: ProductListPhase = .idle
+    var favoriteIDs: Set<Int> = []
+  }
+
+  enum ProductListPhase: Equatable {
     case idle
     case loading
     case loaded([Product])
     case failed
   }
 
-  private(set) var state: State = .idle
+  private(set) var state: State = .init()
   private let repository: any ProductRepository
+  private let favoriteUseCase: FavoriteUseCase
 
-  init(repository: any ProductRepository) {
+  init(repository: any ProductRepository, favoriteUseCase: FavoriteUseCase) {
     self.repository = repository
+    self.favoriteUseCase = favoriteUseCase
   }
 
   func send(_ action: Action) async {
     switch action {
     case .task:
-      guard state == .idle else { return }
+      if state.phase == .idle {
+        await loadProducts()
+      }
+
+    case .observeFavorites:
+      for await productIDs in favoriteUseCase.observeProductIDs() {
+        if !Task.isCancelled {
+          state.favoriteIDs = productIDs
+        }
+      }
 
     case .retryButtonTapped:
-      guard state == .failed else { return }
-    }
+      if state.phase == .failed {
+        await loadProducts()
+      }
 
-    state = .loading
+    case let .favoriteButtonTapped(productID):
+      if case let .loaded(products) = state.phase, products.contains(where: { $0.id == productID }) {
+        favoriteUseCase.toggle(productID: productID)
+      }
+    }
+  }
+
+  private func loadProducts() async {
+    state.phase = .loading
     do {
       let products = try await repository.fetchProducts()
       try Task.checkCancellation()
-      state = .loaded(products)
+      state.phase = .loaded(products)
     } catch is CancellationError {
-      state = .idle
+      state.phase = .idle
     } catch {
-      state = Task.isCancelled ? .idle : .failed
+      state.phase = Task.isCancelled ? .idle : .failed
     }
   }
 }
