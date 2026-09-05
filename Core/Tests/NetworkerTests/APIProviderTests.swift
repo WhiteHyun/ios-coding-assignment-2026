@@ -79,6 +79,89 @@ struct APIProviderTests {
     }
   }
 
+  @Test(arguments: [200, 299, 300, 400, 401, 500])
+  func `accepts only successful HTTP status codes`(status: Int) async throws {
+    let session = makeSession()
+    defer { session.invalidateAndCancel() }
+    let provider = APIProvider(session: session)
+    do {
+      let response: RequestEcho = try await provider.request(TestEndpoint(url: .base(path: "http/\(status)")))
+      #expect(status == 200 || status == 299)
+      #expect(response.path == "/http/\(status)")
+    } catch {
+      guard case let .failureResponse(code) = error else {
+        Issue.record("예상하지 못한 오류: \(error)")
+        return
+      }
+      #expect(status == 300 || status == 400 || status == 401 || status == 500)
+      #expect(code == status)
+    }
+  }
+
+  @Test(arguments: ["missing-field", "wrong-type"])
+  func `preserves decoding errors for valid JSON that does not match the DTO`(path: String) async throws {
+    let session = makeSession()
+    defer { session.invalidateAndCancel() }
+    do {
+      let _: IDResponse = try await APIProvider(session: session).request(TestEndpoint(url: .base(path: path)))
+      Issue.record("DTO와 맞지 않는 응답은 실패해야 합니다.")
+    } catch {
+      guard case let NetworkError.decoding(underlying) = error else {
+        Issue.record("예상하지 못한 오류: \(error)")
+        return
+      }
+      switch (path, underlying) {
+      case let ("missing-field", DecodingError.keyNotFound(key, _)):
+        #expect(key.stringValue == "id")
+
+      case let ("wrong-type", DecodingError.typeMismatch(type, context)):
+        #expect(ObjectIdentifier(type) == ObjectIdentifier(Int.self))
+        #expect(context.codingPath.last?.stringValue == "id")
+
+      default:
+        Issue.record("원본 디코딩 오류가 보존되어야 합니다: \(underlying)")
+      }
+    }
+  }
+
+  @Test
+  func `cancelling an in flight task cancels the request`() async throws {
+    let (started, continuation) = AsyncStream.makeStream(of: Void.self)
+    let observer = NotificationCenter.default.addObserver(forName: StubURLProtocol.requestStarted, object: nil, queue: nil) { _ in
+      continuation.yield(())
+    }
+    defer {
+      NotificationCenter.default.removeObserver(observer)
+      continuation.finish()
+    }
+    let configuration = URLSessionConfiguration.ephemeral
+    configuration.protocolClasses = [StubURLProtocol.self]
+    configuration.timeoutIntervalForRequest = 3
+    let session = URLSession(configuration: configuration)
+    defer { session.invalidateAndCancel() }
+    let task = Task { () throws -> RequestEcho in
+      defer { continuation.finish() }
+      return try await APIProvider(session: session).request(TestEndpoint(url: .base(path: "pending")))
+    }
+    defer { task.cancel() }
+
+    // 응답 헤더가 도착한 뒤 본문을 기다리는 요청을 취소합니다.
+    var responses = started.makeAsyncIterator()
+    let received = await responses.next()
+    try #require(received != nil)
+    task.cancel()
+
+    do {
+      _ = try await task.value
+      Issue.record("취소된 요청은 성공하면 안 됩니다.")
+    } catch {
+      guard case NetworkError.cancelled = error else {
+        Issue.record("취소 오류로 전달되어야 합니다: \(error)")
+        return
+      }
+    }
+  }
+
   @Test(arguments: [
     ("products", "https://dummyjson.com/products"),
     ("/products", "https://dummyjson.com/products"),
@@ -136,6 +219,12 @@ struct APIProviderTests {
     let body = try #require(JSONSerialization.jsonObject(with: Data(echo.body.utf8)) as? [String: String])
     #expect(body == ["product_name": "coffee", "created_at": "2025-04-30T09:41:02.053Z"])
   }
+}
+
+// MARK: - IDResponse
+
+private struct IDResponse: Decodable {
+  let id: Int
 }
 
 // MARK: - CodingPayload
@@ -198,6 +287,8 @@ private struct FailingPayload: Encodable {
 
 /// 공유 가변 상태 없이 요청 경로로 응답을 결정해 테스트 간 간섭을 방지합니다.
 private final class StubURLProtocol: URLProtocol {
+  static let requestStarted = Notification.Name("NetworkerTests.pendingRequestStarted")
+
   override class func canInit(with _: URLRequest) -> Bool {
     true
   }
@@ -225,7 +316,8 @@ private final class StubURLProtocol: URLProtocol {
     if url.lastPathComponent == "non-http" {
       response = URLResponse(url: url, mimeType: nil, expectedContentLength: 0, textEncodingName: nil)
     } else {
-      let status = url.lastPathComponent == "status" ? 503 : (url.lastPathComponent == "empty" ? 204 : 200)
+      let status = Int(url.lastPathComponent)
+        ?? (url.lastPathComponent == "status" ? 503 : (url.lastPathComponent == "empty" ? 204 : 200))
       guard let http = HTTPURLResponse(url: url, statusCode: status, httpVersion: nil, headerFields: nil) else { return }
       response = http
     }
@@ -235,6 +327,8 @@ private final class StubURLProtocol: URLProtocol {
       switch url.lastPathComponent {
       case "empty": data = Data()
       case "malformed", "status": data = Data("not JSON".utf8)
+      case "missing-field": data = Data("{}".utf8)
+      case "wrong-type": data = Data(#"{"id":"one"}"#.utf8)
       case "snake-case":
         data = Data(#"{"product_name":"coffee","created_at":"2025-04-30T09:41:02.053Z"}"#.utf8)
       default:
@@ -251,6 +345,11 @@ private final class StubURLProtocol: URLProtocol {
         ])
       }
       client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+      // 취소 테스트에서는 헤더만 전달하고 본문과 완료 이벤트는 보내지 않습니다.
+      if url.lastPathComponent == "pending" {
+        NotificationCenter.default.post(name: Self.requestStarted, object: nil)
+        return
+      }
       client?.urlProtocol(self, didLoad: data)
       client?.urlProtocolDidFinishLoading(self)
     } catch {
