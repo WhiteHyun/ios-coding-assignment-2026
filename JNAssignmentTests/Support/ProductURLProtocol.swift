@@ -3,6 +3,9 @@ import Foundation
 final class ProductURLProtocol: URLProtocol {
   enum Scenario: String {
     case products
+    case productDetail = "product-detail"
+    case detailCancelled
+    case detailNotFound
     case productsWithoutThumbnail = "products-without-thumbnail"
     case productsInvalidThumbnail = "products-invalid-thumbnail"
     case cancelled
@@ -23,7 +26,6 @@ final class ProductURLProtocol: URLProtocol {
     do {
       guard
         let url = request.url,
-        url.absoluteString == "https://dummyjson.com/products",
         request.httpMethod == "GET",
         request.httpBody == nil,
         request.httpBodyStream == nil,
@@ -33,17 +35,21 @@ final class ProductURLProtocol: URLProtocol {
         throw URLError(.badURL)
       }
 
-      if scenario == .cancelled {
+      let isDetail = [.productDetail, .detailCancelled, .detailNotFound].contains(scenario)
+      let expectedURL = isDetail ? "https://dummyjson.com/products/42" : "https://dummyjson.com/products"
+      guard url.absoluteString == expectedURL else { throw URLError(.badURL) }
+
+      if scenario == .cancelled || scenario == .detailCancelled {
         throw URLError(.cancelled)
       }
 
-      let statusCode = scenario == .serviceUnavailable ? 503 : 200
+      let statusCode = scenario == .detailNotFound ? 404 : (scenario == .serviceUnavailable ? 503 : 200)
       guard let response = HTTPURLResponse(url: url, statusCode: statusCode, httpVersion: nil, headerFields: nil) else {
         throw URLError(.badServerResponse)
       }
 
       let data: Data
-      if scenario == .serviceUnavailable {
+      if statusCode != 200 {
         data = Data()
       } else {
         guard let fixtureURL = Bundle(for: Self.self).url(forResource: scenario.rawValue, withExtension: "json") else {

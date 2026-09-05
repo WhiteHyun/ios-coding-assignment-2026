@@ -11,6 +11,7 @@ import SwiftUI
 
 @main
 struct JNAssignmentApp: App {
+  private let productRepository: RemoteProductRepository = .init(provider: APIProvider(session: .shared))
   @State private var favoriteRepository: LocalFavoriteRepository = .init(
     storage: UserDefaultsStorage(defaults: .standard)
   )
@@ -21,11 +22,21 @@ struct JNAssignmentApp: App {
       ContentView(
         interactor: ProductListInteractor(
           productListUseCase: ProductListUseCase(
-            productRepository: RemoteProductRepository(provider: APIProvider(session: .shared)),
+            productRepository: productRepository,
             favoriteRepository: favoriteRepository,
           ),
           favoriteUseCase: FavoriteUseCase(repository: favoriteRepository),
-        )
+        ),
+        makeDetailInteractor: { productID in
+          ProductDetailInteractor(
+            productID: productID,
+            productDetailUseCase: ProductDetailUseCase(
+              productRepository: productRepository,
+              favoriteRepository: favoriteRepository,
+            ),
+            favoriteUseCase: FavoriteUseCase(repository: favoriteRepository),
+          )
+        },
       )
     }
   }

@@ -13,8 +13,16 @@ nonisolated struct ProductDTO: Decodable, Sendable {
   let title: String
   let price: Double
   let thumbnail: String?
+  let description: String?
 
   func toDomain() -> Product {
-    Product(id: id, title: title, price: price, thumbnail: thumbnail.flatMap(URL.init(string:)), isFavorite: false)
+    Product(
+      id: id,
+      title: title,
+      price: price,
+      thumbnail: thumbnail.flatMap(URL.init(string:)),
+      description: description,
+      isFavorite: false,
+    )
   }
 }

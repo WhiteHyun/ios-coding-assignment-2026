@@ -6,6 +6,42 @@ import Testing
 @MainActor
 struct RemoteProductRepositoryTests {
   @Test
+  func `requests a specific product and decodes its description`() async throws {
+    let session = makeSession(scenario: .productDetail)
+    defer { session.invalidateAndCancel() }
+    let repository = RemoteProductRepository(provider: APIProvider(session: session))
+
+    let product = try await repository.fetchProduct(id: 42)
+
+    #expect(product.id == 42)
+    #expect(product.title == "Detail product")
+    #expect(product.description == "Product description from the detail API.")
+    #expect(product.price == 29.99)
+    #expect(product.thumbnail?.absoluteString == "https://example.com/detail.png")
+  }
+
+  @Test
+  func `detail cancellation is translated and not found errors are preserved`() async {
+    let cancelled = makeSession(scenario: .detailCancelled)
+    let notFound = makeSession(scenario: .detailNotFound)
+    defer {
+      cancelled.invalidateAndCancel()
+      notFound.invalidateAndCancel()
+    }
+    await #expect(throws: CancellationError.self) {
+      try await RemoteProductRepository(provider: APIProvider(session: cancelled)).fetchProduct(id: 42)
+    }
+    await #expect {
+      try await RemoteProductRepository(provider: APIProvider(session: notFound)).fetchProduct(id: 42)
+    } throws: { error in
+      if case .failureResponse(statusCode: 404) = error as? NetworkError {
+        return true
+      }
+      return false
+    }
+  }
+
+  @Test
   func `requests the product list and unwraps the server response`() async throws {
     let session = makeSession(scenario: .products)
     defer { session.invalidateAndCancel() }
