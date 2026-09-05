@@ -1,0 +1,19 @@
+ [tools]
+swiftformat = "0.62.1"
+swiftlint = "0.65.0"
+
+[tasks.format]
+description = "Format Swift sources"
+run = "swiftformat ."
+
+[tasks.format-check]
+description = "Check Swift formatting"
+run = "swiftformat --lint ."
+
+[tasks.lint]
+description = "Run SwiftLint"
+run = "swiftlint lint --strict"
+
+[tasks.check]
+description = "Run all CI checks"
+depends = ["format-check", "lint"]
