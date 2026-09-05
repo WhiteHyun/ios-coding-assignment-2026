@@ -14,10 +14,13 @@ let package = Package(
       targets: ["Networker"],
     ),
     .library(name: "Storage", targets: ["Storage"]),
+    .library(name: "Architecture", targets: ["Architecture"]),
   ],
   targets: [
     .target(name: "Networker"),
     .target(name: "Storage"),
+    .target(name: "Architecture"),
+    .testTarget(name: "ArchitectureTests", dependencies: ["Architecture"]),
     .testTarget(name: "StorageTests", dependencies: ["Storage"]),
     .testTarget(
       name: "NetworkerTests",
