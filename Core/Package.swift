@@ -15,11 +15,14 @@ let package = Package(
     ),
     .library(name: "Storage", targets: ["Storage"]),
     .library(name: "Architecture", targets: ["Architecture"]),
+    .library(name: "DependencyInjection", targets: ["DependencyInjection"]),
   ],
   targets: [
     .target(name: "Networker"),
     .target(name: "Storage"),
     .target(name: "Architecture"),
+    .target(name: "DependencyInjection"),
+    .testTarget(name: "DependencyInjectionTests", dependencies: ["DependencyInjection"]),
     .testTarget(name: "ArchitectureTests", dependencies: ["Architecture"]),
     .testTarget(name: "StorageTests", dependencies: ["Storage"]),
     .testTarget(
