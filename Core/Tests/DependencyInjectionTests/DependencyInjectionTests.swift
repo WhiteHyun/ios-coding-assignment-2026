@@ -37,13 +37,13 @@ struct DependencyInjectionTests {
 
   @Test
   func `each dependency wrapper keeps its own factory-created object`() {
-    let container = DIContainer()
+    let container = DIContainer.shared
     container.register(type: (any Service).self, SampleService())
     container.register(type: FactoryConsumer.self) { resolver in
       FactoryConsumer(service: resolver.resolve(type: (any Service).self))
     }
-    let first = Dependency<FactoryConsumer>(container: container)
-    let second = Dependency<FactoryConsumer>(container: container)
+    let first = Dependency<FactoryConsumer>()
+    let second = Dependency<FactoryConsumer>()
     #expect(first.wrappedValue === first.wrappedValue)
     #expect(first.wrappedValue !== second.wrappedValue)
     #expect(first.wrappedValue.service === second.wrappedValue.service)
@@ -71,25 +71,21 @@ struct DependencyInjectionTests {
   }
 
   @Test
-  func `dependency resolves on first access and retains that instance`() {
-    let container = DIContainer()
-    let dependency = Dependency<any Service>(container: container)
+  func `dependency resolves at initialization and retains that instance`() {
+    let container = DIContainer.shared
     let first = SampleService()
-    container.register(type: (any Service).self, first)
-    #expect(dependency.wrappedValue === first)
+    var creations = 0
+    container.register(type: (any Service).self) { _ in
+      creations += 1
+      return first
+    }
+    let dependency = Dependency<any Service>()
+    #expect(creations == 1)
 
     let second = SampleService()
     container.register(type: (any Service).self, second)
-    #expect(container.resolve(type: (any Service).self) === second)
     #expect(dependency.wrappedValue === first)
-    #expect(Dependency<any Service>(container: container).wrappedValue === second)
-  }
-
-  @Test
-  func `explicit injection does not resolve an unregistered global dependency`() {
-    let service = SampleService()
-    let consumer = Consumer(service: service)
-    #expect(consumer.service === service)
+    #expect(Dependency<any Service>().wrappedValue === second)
   }
 
   @Test
@@ -111,17 +107,6 @@ private protocol Service: AnyObject {
 
 @MainActor
 private final class SampleService: Service {
-}
-
-// MARK: - Consumer
-
-@MainActor
-private struct Consumer {
-  @Dependency var service: any Service
-
-  init(service: any Service) {
-    _service = Dependency(wrappedValue: service)
-  }
 }
 
 // MARK: - SharedService

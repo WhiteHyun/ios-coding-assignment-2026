@@ -39,11 +39,6 @@ struct ProductListReducer: Reducer {
   init() {
   }
 
-  init(productListUseCase: ProductListUseCase, favoriteUseCase: FavoriteUseCase) {
-    _productListUseCase = Dependency(wrappedValue: productListUseCase)
-    _favoriteUseCase = Dependency(wrappedValue: favoriteUseCase)
-  }
-
   func reduce(state: inout State, action: Action) -> Effect {
     switch action {
     case .appeared:
