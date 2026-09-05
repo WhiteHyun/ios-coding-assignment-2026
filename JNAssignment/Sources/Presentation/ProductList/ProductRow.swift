@@ -2,53 +2,48 @@ import SwiftUI
 
 struct ProductRow: View {
   let product: Product
+  let layout: ProductListLayout
   let favoriteButtonTapped: () -> Void
 
   var body: some View {
-    HStack(spacing: 16) {
+    let rowLayout = layout == .list
+      ? AnyLayout(HStackLayout(alignment: .center, spacing: 8))
+      : AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+    rowLayout {
       NavigationLink(value: product.id) {
-        HStack(spacing: 16) {
-          AsyncImage(url: product.thumbnail) { phase in
-            switch phase {
-            case let .success(image):
-              image
-                .resizable()
-                .scaledToFit()
-
-            case .empty, .failure:
-              Image(systemName: "photo")
-                .foregroundStyle(.secondary)
-
-            @unknown default:
-              Image(systemName: "photo")
-                .foregroundStyle(.secondary)
-            }
-          }
-          .frame(width: 80, height: 80)
-          .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
-          .accessibilityHidden(true)
-
+        let contentLayout = layout == .list
+          ? AnyLayout(HStackLayout(alignment: .center, spacing: 16))
+          : AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+        contentLayout {
+          ProductImage(url: product.thumbnail)
+            .frame(width: layout == .list ? 88 : nil, height: layout == .list ? 88 : 150)
+            .frame(maxWidth: layout == .grid ? .infinity : nil)
+            .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+            .accessibilityHidden(true)
           VStack(alignment: .leading, spacing: 8) {
             Text(product.title)
               .font(.headline)
+              .fixedSize(horizontal: false, vertical: true)
             Text(product.price, format: .number.precision(.fractionLength(2)))
-              .font(.subheadline)
+              .font(.subheadline.weight(.semibold))
           }
           .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .contentShape(Rectangle())
       }
-
+      .buttonStyle(.plain)
       Button(action: favoriteButtonTapped) {
-        Image(systemName: product.isFavorite ? "heart.fill" : "heart")
+        Label("찜", systemImage: product.isFavorite ? "heart.fill" : "heart")
+          .font(.subheadline)
           .foregroundStyle(product.isFavorite ? .red : .secondary)
-          .frame(width: 44, height: 44)
+          .frame(minWidth: 44, minHeight: 44)
       }
       .buttonStyle(.borderless)
+      .frame(maxWidth: layout == .grid ? .infinity : nil, alignment: .trailing)
       .accessibilityLabel("\(product.title) 찜")
       .accessibilityValue(product.isFavorite ? "선택됨" : "선택 안 됨")
       .accessibilityHint(product.isFavorite ? "찜 해제" : "찜 추가")
     }
-    .padding(.vertical, 8)
     .accessibilityElement(children: .contain)
   }
 }

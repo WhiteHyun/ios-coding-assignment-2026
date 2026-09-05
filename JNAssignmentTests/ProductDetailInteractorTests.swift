@@ -6,19 +6,27 @@ import Testing
 @Suite(.timeLimit(.minutes(1)))
 struct ProductDetailInteractorTests {
   private let favorites: LocalFavoriteRepository = .init(storage: InMemoryStorage())
-  private let product: Product = .init(
+  private let product: ProductDetail = .init(
     id: 1,
     title: "Detail",
     price: 9.99,
-    thumbnail: nil,
     description: "Description",
+    images: [],
+    brand: nil,
+    category: "beauty",
+    rating: 4.5,
+    stock: 10,
     isFavorite: false,
   )
 
   @Test
   func `detail unfavorite is reflected on returning to the list and changes flow both ways`() async {
     favorites.save(productIDs: [1])
-    let repository = StubProductRepository(result: .success([product]))
+    let listProduct = Product(id: 1, title: "List", price: 9.99, thumbnail: nil, isFavorite: false)
+    let repository = StubProductRepository(result: .success([listProduct]))
+    repository.detailResult = .success(product)
+    var favoriteListProduct = listProduct
+    favoriteListProduct.isFavorite = true
     let list = ProductListInteractor(
       productListUseCase: ProductListUseCase(productRepository: repository, favoriteRepository: favorites),
       favoriteUseCase: FavoriteUseCase(repository: favorites),
@@ -27,7 +35,7 @@ struct ProductDetailInteractorTests {
     var favoriteProduct = product
     favoriteProduct.isFavorite = true
     let listTask = Task { await list.send(.task) }
-    await waitForList([favoriteProduct], in: list)
+    await waitForList([favoriteListProduct], in: list)
     listTask.cancel()
     await listTask.value
 
@@ -36,21 +44,22 @@ struct ProductDetailInteractorTests {
     await waitForDetail(favoriteProduct, in: detail)
     await detail.send(.favoriteButtonTapped)
     await waitForDetail(product, in: detail)
-    #expect(list.state.phase == .loaded([favoriteProduct]))
+    #expect(list.state.phase == .loaded([favoriteListProduct]))
 
     let resumedList = Task { await list.send(.task) }
     defer { resumedList.cancel() }
-    await waitForList([product], in: list)
+    await waitForList([listProduct], in: list)
     await list.send(.favoriteButtonTapped(productID: 1))
     await waitForDetail(favoriteProduct, in: detail)
-    await waitForList([favoriteProduct], in: list)
+    await waitForList([favoriteListProduct], in: list)
     #expect(repository.requestCount == 1)
     #expect(repository.detailRequestIDs == [1])
   }
 
   @Test
   func `failed detail requests can be retried without changing favorites before loading`() async {
-    let repository = StubProductRepository(result: .failure(TestError.offline))
+    let repository = StubProductRepository(result: .success([]))
+    repository.detailResult = .failure(TestError.offline)
     let interactor = makeInteractor(repository: repository)
     await interactor.send(.favoriteButtonTapped)
     #expect(favorites.fetchProductIDs().isEmpty)
@@ -59,7 +68,7 @@ struct ProductDetailInteractorTests {
     await interactor.send(.favoriteButtonTapped)
     #expect(favorites.fetchProductIDs().isEmpty)
 
-    repository.result = .success([product])
+    repository.detailResult = .success(product)
     await interactor.send(.retryButtonTapped)
     #expect(interactor.state.retryCount == 1)
     let retry = Task { await interactor.send(.task) }
@@ -78,7 +87,7 @@ struct ProductDetailInteractorTests {
     await interactor.send(.task)
     #expect(repository.detailRequestIDs == [1])
     first.cancel()
-    repository.complete(with: .success([product]))
+    repository.completeDetail(with: .success(product))
     await first.value
     #expect(interactor.state.phase == .idle)
 
@@ -86,7 +95,7 @@ struct ProductDetailInteractorTests {
     defer { next.cancel() }
     await repository.waitForRequest()
     favorites.save(productIDs: [1])
-    repository.complete(with: .success([product]))
+    repository.completeDetail(with: .success(product))
     var favoriteProduct = product
     favoriteProduct.isFavorite = true
     await waitForDetail(favoriteProduct, in: interactor)
@@ -101,7 +110,7 @@ struct ProductDetailInteractorTests {
     )
   }
 
-  private func waitForDetail(_ product: Product, in interactor: ProductDetailInteractor) async {
+  private func waitForDetail(_ product: ProductDetail, in interactor: ProductDetailInteractor) async {
     while interactor.state.phase != .loaded(product) {
       await withCheckedContinuation { continuation in
         withObservationTracking {

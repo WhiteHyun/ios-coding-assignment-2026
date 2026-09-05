@@ -13,7 +13,6 @@ nonisolated struct ProductDTO: Decodable, Sendable {
   let title: String
   let price: Double
   let thumbnail: String?
-  let description: String?
 
   func toDomain() -> Product {
     Product(
@@ -21,7 +20,6 @@ nonisolated struct ProductDTO: Decodable, Sendable {
       title: title,
       price: price,
       thumbnail: thumbnail.flatMap(URL.init(string:)),
-      description: description,
       isFavorite: false,
     )
   }

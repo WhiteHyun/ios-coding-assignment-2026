@@ -8,7 +8,7 @@ struct ProductDetailUseCase {
     self.favoriteRepository = favoriteRepository
   }
 
-  func observeProduct(id: Int) async throws -> AsyncMapSequence<AsyncStream<Set<Int>>, Product> {
+  func observeProduct(id: Int) async throws -> AsyncMapSequence<AsyncStream<Set<Int>>, ProductDetail> {
     let product = try await productRepository.fetchProduct(id: id)
     try Task.checkCancellation()
     return favoriteRepository.observeProductIDs().map { productIDs in

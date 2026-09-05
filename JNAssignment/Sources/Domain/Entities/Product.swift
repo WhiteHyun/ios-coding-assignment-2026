@@ -5,6 +5,5 @@ nonisolated struct Product: Identifiable, Equatable, Sendable {
   let title: String
   let price: Double
   let thumbnail: URL?
-  let description: String?
   var isFavorite: Bool
 }
