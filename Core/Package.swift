@@ -12,10 +12,13 @@ let package = Package(
     .library(
       name: "Networker",
       targets: ["Networker"],
-    )
+    ),
+    .library(name: "Storage", targets: ["Storage"]),
   ],
   targets: [
     .target(name: "Networker"),
+    .target(name: "Storage"),
+    .testTarget(name: "StorageTests", dependencies: ["Storage"]),
     .testTarget(
       name: "NetworkerTests",
       dependencies: ["Networker"],
