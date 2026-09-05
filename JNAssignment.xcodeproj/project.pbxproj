@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		BA411940304B170000881408 /* Networker in Frameworks */ = {isa = PBXBuildFile; productRef = BA411941304B170000881408 /* Networker */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		BA41183C304AEF1C00881408 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -19,6 +23,7 @@
 /* Begin PBXFileReference section */
 		BA41182E304AEF1B00881408 /* JNAssignment.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JNAssignment.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA41183B304AEF1C00881408 /* JNAssignmentTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JNAssignmentTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BA41193B304B157100881408 /* Core */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Core; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -39,6 +44,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BA411940304B170000881408 /* Networker in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -55,6 +61,7 @@
 		BA411825304AEF1B00881408 = {
 			isa = PBXGroup;
 			children = (
+				BA41193B304B157100881408 /* Core */,
 				BA411830304AEF1B00881408 /* JNAssignment */,
 				BA41183E304AEF1C00881408 /* JNAssignmentTests */,
 				BA41182F304AEF1B00881408 /* Products */,
@@ -90,6 +97,7 @@
 			);
 			name = JNAssignment;
 			packageProductDependencies = (
+				BA411941304B170000881408 /* Networker */,
 			);
 			productName = JNAssignment;
 			productReference = BA41182E304AEF1B00881408 /* JNAssignment.app */;
@@ -146,6 +154,9 @@
 			);
 			mainGroup = BA411825304AEF1B00881408;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BA411942304B170000881408 /* XCLocalSwiftPackageReference "Core" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BA41182F304AEF1B00881408 /* Products */;
 			projectDirPath = "";
@@ -474,6 +485,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		BA411942304B170000881408 /* XCLocalSwiftPackageReference "Core" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Core;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BA411941304B170000881408 /* Networker */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Networker;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = BA411826304AEF1B00881408 /* Project object */;
 }
